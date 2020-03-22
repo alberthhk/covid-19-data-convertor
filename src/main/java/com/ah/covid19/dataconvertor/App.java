@@ -17,7 +17,6 @@ import java.util.Properties;
 
 public class App {
     private static final Properties config = new Properties();
-    private static final String csv_delimiter = ",";
 
     private static final int column_province = 0;
     private static final int column_country = 1;
@@ -38,6 +37,8 @@ public class App {
     }
 
     private static final String confirmed_case_timeseries_csv_filepath = config.getProperty("confirmed_case_timeseries_csv_filepath");
+    private static final String death_case_timeseries_csv_filepath = config.getProperty("death_case_timeseries_csv_filepath");
+    private static final String recovered_case_timeseries_csv_filepath = config.getProperty("recovery_case_timeseries_csv_filepath");
 
     public static JSONObject readCsvFile(String filepath) {
         File csvFile = new File(filepath);
@@ -96,6 +97,14 @@ public class App {
     }
 
     public static void main(String[] args) {
-        App.writeToFile(App.readCsvFile(App.confirmed_case_timeseries_csv_filepath));
+        JSONObject confirmed = App.readCsvFile(App.confirmed_case_timeseries_csv_filepath);
+        JSONObject death = App.readCsvFile(App.death_case_timeseries_csv_filepath);
+        JSONObject recovered = App.readCsvFile(App.recovered_case_timeseries_csv_filepath);
+
+        JSONObject output = new JSONObject();
+        output.put("confirmed", confirmed);
+        output.put("deaths", death);
+        output.put("recovered", recovered);
+        App.writeToFile(output);
     }
 }
