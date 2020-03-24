@@ -1,5 +1,8 @@
 .idea
 target
 *.iml
-credientials.json
-credientials.*
+.DS_Store
+
+tokens
+**/credentials.json
+**/credentials.*.json

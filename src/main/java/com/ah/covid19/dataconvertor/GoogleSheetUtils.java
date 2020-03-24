@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GoogleSheetHelper {
-    private static final Logger logger = LogManager.getLogger(GoogleSheetHelper.class);
+public class GoogleSheetUtils {
+    private static final Logger logger = LogManager.getLogger(GoogleSheetUtils.class);
 
     private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
     private static final List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);
@@ -63,7 +63,7 @@ public class GoogleSheetHelper {
 
     public static void uploadCsvToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        Sheets service = new Sheets.Builder(HTTP_TRANSPORT, GoogleSheetHelper.JSON_FACTORY, GoogleSheetHelper.getCredentials(HTTP_TRANSPORT))
+        Sheets service = new Sheets.Builder(HTTP_TRANSPORT, GoogleSheetUtils.JSON_FACTORY, GoogleSheetUtils.getCredentials(HTTP_TRANSPORT))
                 .setApplicationName("COVID-19")
                 .build();
 

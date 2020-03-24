@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class CSVHelper {
-    private static final Logger logger = LogManager.getLogger(GoogleSheetHelper.class);
+public class CSVUtils {
+    private static final Logger logger = LogManager.getLogger(GoogleSheetUtils.class);
 
     private static final int COLUMN_PROVINCE = 0;
     private static final int COLUMN_COUNTRY = 1;
@@ -118,15 +118,17 @@ public class CSVHelper {
     }
 
     public static Map<Location, List<Case>> appendCaseToLocationWithoutUpdate(final Map<Location, List<Case>> caseMap, final int numOfDays, final String date) {
-        caseMap.values().stream().forEach(list -> {
-            if (numOfDays < 1 && list.size() < numOfDays + 1) {
-                list.add(new Case.CaseBuilder()
-                        .date(date)
-                        .accumulatedCase(list.get(numOfDays - 1).getAccumulatedCase())
-                        .dailyNewCase(0)
-                        .build());
-            }
-        });
+        if (numOfDays < 1) return caseMap;
+
+        caseMap.values().stream()
+                .filter(l -> l.size() < numOfDays + 1)
+                .forEach(list -> {
+                    list.add(new Case.CaseBuilder()
+                            .date(date)
+                            .accumulatedCase(list.get(numOfDays - 1).getAccumulatedCase())
+                            .dailyNewCase(0)
+                            .build());
+                });
 
         return caseMap;
     }
