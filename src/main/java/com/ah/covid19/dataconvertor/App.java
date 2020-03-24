@@ -1,9 +1,8 @@
 package com.ah.covid19.dataconvertor;
 
-import com.ah.covid19.dataconvertor.model.Case;
+import com.ah.covid19.dataconvertor.model.Covid19Case;
 import com.ah.covid19.dataconvertor.model.Location;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
@@ -37,16 +36,17 @@ public class App {
     private static final String daily_reports_filename_pattern = CONFIG.getProperty("daily_reports_filename_pattern");
 
     public static void main(String[] args) throws GeneralSecurityException, IOException {
-        Map<Location, List<Case>> timeSeriesCSVFileToMap = CSVUtils.readTimeSeriesCSVFileToMap(new File(confirmed_case_timeseries_csv_filepath));
-        GoogleSheetUtils.uploadCsvToGoogleSheet(google_spreadsheet_id, timeSeriesCSVFileToMap, "Confirmed!A:ZZ");
+        //Map<Location, List<Case>> timeSeriesCSVFileToMap = CSVUtils.readTimeSeriesCSVFileToMap(new File(confirmed_case_timeseries_csv_filepath));
+        //GoogleSheetUtils.uploadCsvToGoogleSheet(google_spreadsheet_id, timeSeriesCSVFileToMap, "Confirmed!A:ZZ");
 
         GregorianCalendar startDate = new GregorianCalendar();
         startDate.set(2020,0,22);
 
         GregorianCalendar endDate = new GregorianCalendar();
         endDate.add(Calendar.DAY_OF_MONTH, -1);
-        Map<Location, List<Case>> dailyReportCSVFileToMap = CSVUtils.readDailyReportCSVFileToMap(daily_reports_csv_filepath, startDate, endDate, daily_reports_filename_pattern);
+        Map<Location, List<Covid19Case>> dailyReportCSVFileToMap = CSVUtils.readDailyReportCSVFileToMap(daily_reports_csv_filepath, startDate, endDate, daily_reports_filename_pattern);
 
-        GoogleSheetUtils.uploadCsvToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Daily!A:ZZ");
+        GoogleSheetUtils.uploadConfirmedCaseToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Confirmed!A:ZZ");
+        GoogleSheetUtils.uploadDailyNewCaseToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Daily New Cases!A:ZZ");
     }
 }

@@ -1,6 +1,6 @@
 package com.ah.covid19.dataconvertor;
 
-import com.ah.covid19.dataconvertor.model.Case;
+import com.ah.covid19.dataconvertor.model.Covid19Case;
 import com.ah.covid19.dataconvertor.model.Location;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
@@ -40,6 +40,9 @@ public class CSVUtils {
         switch (countryName) {
             case "UK":
                 return new Location.LocationBuilder().country("United Kingdom").province("United Kingdom").build();
+            case "United Kingdom":
+                if ("UK".equals(provinceName))
+                return new Location.LocationBuilder().country("United Kingdom").province("United Kingdom").build();
             case "Australia":
                 if (StringUtils.isEmpty(provinceName))
                     return new Location.LocationBuilder().country("Australia").province("New South Wales").build();
@@ -57,11 +60,11 @@ public class CSVUtils {
         }
     }
 
-    public static Map<Location, List<Case>> readDailyReportCSVFileToMap(final String dailyReportFileFolder, final Calendar startDate, final Calendar endDate, final String fileNameDatePattern) {
-        final Map<Location, List<Case>> result = new TreeMap<>();
+    public static Map<Location, List<Covid19Case>> readDailyReportCSVFileToMap(final String dailyReportFileFolder, final Calendar startDate, final Calendar endDate, final String fileNameDatePattern) {
+        final Map<Location, List<Covid19Case>> result = new TreeMap<>();
         final SimpleDateFormat simpleDateFormat = new SimpleDateFormat(fileNameDatePattern);
         int numOfDays = 0;
-        final List<Case> zeroCasesList = new ArrayList<>();
+        final List<Covid19Case> zeroCasesList = new ArrayList<>();
 
         while (endDate.compareTo(startDate) > 0) {
             String date = simpleDateFormat.format(startDate.getTime());
@@ -80,26 +83,26 @@ public class CSVUtils {
 
                     if (result.containsKey(location)) {
                         //existing location found
-                        Case previousDayCase = result.get(location).get(numOfDays-1);
+                        Covid19Case previousDayCovid19Case = result.get(location).get(numOfDays-1);
 
-                        Case confirmedCase = new Case.CaseBuilder()
+                        Covid19Case confirmedCovid19Case = new Covid19Case.CaseBuilder()
                                 .date(date)
                                 .accumulatedCase(confirmedValue)
-                                .dailyNewCase(confirmedValue - previousDayCase.getAccumulatedCase())
+                                .dailyNewCase(confirmedValue - previousDayCovid19Case.getConfirmedCase())
                                 .build();
 
-                        result.get(location).add(confirmedCase);
+                        result.get(location).add(confirmedCovid19Case);
                     } else {
                         //new location found
-                        Case confirmedCase = new Case.CaseBuilder()
+                        Covid19Case confirmedCovid19Case = new Covid19Case.CaseBuilder()
                                 .date(date)
                                 .accumulatedCase(confirmedValue)
                                 .dailyNewCase(confirmedValue)
                                 .build();
 
-                        List<Case> caseList = new ArrayList<>(zeroCasesList);
-                        caseList.add(confirmedCase);
-                        result.put(location, caseList);
+                        List<Covid19Case> covid19CaseList = new ArrayList<>(zeroCasesList);
+                        covid19CaseList.add(confirmedCovid19Case);
+                        result.put(location, covid19CaseList);
                     }
                 }
             } catch(IOException | CsvValidationException e) {
@@ -110,22 +113,22 @@ public class CSVUtils {
             //append empty case for location without daily update
             appendCaseToLocationWithoutUpdate(result, numOfDays, date);
 
-            zeroCasesList.add(new Case.CaseBuilder().date(date).accumulatedCase(0).build());
+            zeroCasesList.add(new Covid19Case.CaseBuilder().date(date).accumulatedCase(0).build());
             startDate.add(Calendar.DAY_OF_MONTH, 1);
             numOfDays++;
         }
         return result;
     }
 
-    public static Map<Location, List<Case>> appendCaseToLocationWithoutUpdate(final Map<Location, List<Case>> caseMap, final int numOfDays, final String date) {
+    public static Map<Location, List<Covid19Case>> appendCaseToLocationWithoutUpdate(final Map<Location, List<Covid19Case>> caseMap, final int numOfDays, final String date) {
         if (numOfDays < 1) return caseMap;
 
         caseMap.values().stream()
                 .filter(l -> l.size() < numOfDays + 1)
                 .forEach(list -> {
-                    list.add(new Case.CaseBuilder()
+                    list.add(new Covid19Case.CaseBuilder()
                             .date(date)
-                            .accumulatedCase(list.get(numOfDays - 1).getAccumulatedCase())
+                            .accumulatedCase(list.get(numOfDays - 1).getConfirmedCase())
                             .dailyNewCase(0)
                             .build());
                 });
@@ -133,8 +136,8 @@ public class CSVUtils {
         return caseMap;
     }
 
-    public static Map<Location, List<Case>> readTimeSeriesCSVFileToMap(final File csvFile) {
-        final Map<Location, List<Case>> result = new TreeMap<>();
+    public static Map<Location, List<Covid19Case>> readTimeSeriesCSVFileToMap(final File csvFile) {
+        final Map<Location, List<Covid19Case>> result = new TreeMap<>();
 
         try (CSVReader csvReader = new CSVReader(new FileReader(csvFile))) {
             String[] parsedDateLine = csvReader.readNext();
@@ -148,9 +151,9 @@ public class CSVUtils {
                         .latitude(parsedLine[COLUMN_LATITUDE])
                         .build();
 
-                List<Case> accumulatedCases = new LinkedList<>();
+                List<Covid19Case> accumulatedCovid19Cases = new LinkedList<>();
                 for (int i = COLUMN_LONGITUDE +1; i<parsedLine.length-1; i++) {
-                    accumulatedCases.add(new Case.CaseBuilder()
+                    accumulatedCovid19Cases.add(new Covid19Case.CaseBuilder()
                             .date(parsedDateLine[i])
                             .accumulatedCase(Integer.valueOf(parsedLine[i]))
                             .build()
@@ -161,7 +164,7 @@ public class CSVUtils {
                     //TODO: to verify each value of both to try to correct the value
                     logger.error("Duplicated locaation found in csv " + location);;
                 } else {
-                    result.put(location, accumulatedCases);
+                    result.put(location, accumulatedCovid19Cases);
                 }
             }
         } catch(IOException | CsvValidationException e) {

@@ -1,6 +1,6 @@
 package com.ah.covid19.dataconvertor;
 
-import com.ah.covid19.dataconvertor.model.Case;
+import com.ah.covid19.dataconvertor.model.Covid19Case;
 import com.ah.covid19.dataconvertor.model.Location;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class GoogleSheetUtils {
+
     private static final Logger logger = LogManager.getLogger(GoogleSheetUtils.class);
 
     private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
@@ -61,7 +62,15 @@ public class GoogleSheetUtils {
         }
     }
 
-    public static void uploadCsvToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
+    public static void uploadConfirmedCaseToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
+        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.CONFIRMED);
+    }
+
+    public static void uploadDailyNewCaseToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
+        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.DAILYNEW);
+    }
+
+    private static void uploadCsvToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range, final CaseType type) throws GeneralSecurityException, IOException {
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
         Sheets service = new Sheets.Builder(HTTP_TRANSPORT, GoogleSheetUtils.JSON_FACTORY, GoogleSheetUtils.getCredentials(HTTP_TRANSPORT))
                 .setApplicationName("COVID-19")
@@ -78,7 +87,7 @@ public class GoogleSheetUtils {
             if (headerRow.isEmpty()) {
                 headerRow.add("Country");
                 headerRow.add("Province");
-                for (Case c : locationAccumCasesMap.get(location)) {
+                for (Covid19Case c : locationAccumCasesMap.get(location)) {
                     headerRow.add(c.getDate());
                 }
                 valuesToGSheet.add(headerRow);
@@ -87,8 +96,8 @@ public class GoogleSheetUtils {
             List<Object> row = new LinkedList<>();
             row.add(location.getCountry());
             row.add(location.getProvince());
-            for (Case c : locationAccumCasesMap.get(location)) {
-                row.add(c.getAccumulatedCase());
+            for (Covid19Case c : locationAccumCasesMap.get(location)) {
+                row.add(getCaseNumber(c, type));
             }
             valuesToGSheet.add(row);
         }
@@ -99,5 +108,20 @@ public class GoogleSheetUtils {
                         .execute();
 
         logger.info("{} cells updated.", result.getUpdatedCells());
+    }
+
+    public static int getCaseNumber(Covid19Case c, CaseType type) {
+        switch (type) {
+            case CONFIRMED:
+                return c.getConfirmedCase();
+            case DAILYNEW:
+                return c.getDailyNewConfirmedCase();
+            default:
+                return c.getConfirmedCase();
+        }
+    }
+
+    private enum CaseType {
+        CONFIRMED, DAILYNEW, DEATH, RECOVERED;
     }
 }
