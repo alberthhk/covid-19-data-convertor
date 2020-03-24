@@ -1,110 +1,64 @@
 package com.ah.covid19.dataconvertor;
 
-import com.opencsv.CSVReader;
-import com.opencsv.exceptions.CsvValidationException;
-import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.ah.covid19.dataconvertor.model.Case;
+import com.ah.covid19.dataconvertor.model.Location;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Properties;
+import java.security.GeneralSecurityException;
+import java.util.*;
 
 public class App {
-    private static final Properties config = new Properties();
-
-    private static final int column_province = 0;
-    private static final int column_country = 1;
-    private static final int column_latitude = 2;
-    private static final int column_longitude = 3;
+    private static final Properties CONFIG = new Properties();
 
     static {
+        //setup to load the covid-19 data from CSSE-COVID-19 local git repo
         try (InputStream input = App.class.getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {
                 System.out.println("Sorry, unable to find config.properties");
+                System.exit(1);
             }
             //load a properties file from class path, inside static method
-            config.load(input);
+            CONFIG.load(input);
         } catch (IOException ex) {
             ex.printStackTrace();
             System.exit(1);
         }
     }
 
-    private static final String confirmed_case_timeseries_csv_filepath = config.getProperty("confirmed_case_timeseries_csv_filepath");
-    private static final String death_case_timeseries_csv_filepath = config.getProperty("death_case_timeseries_csv_filepath");
-    private static final String recovered_case_timeseries_csv_filepath = config.getProperty("recovery_case_timeseries_csv_filepath");
+    private static final String confirmed_case_timeseries_csv_filepath = CONFIG.getProperty("confirmed_case_timeseries_csv_filepath");
+    private static final String death_case_timeseries_csv_filepath = CONFIG.getProperty("death_case_timeseries_csv_filepath");
+    private static final String recovered_case_timeseries_csv_filepath = CONFIG.getProperty("recovery_case_timeseries_csv_filepath");
+    private static final String daily_reports_csv_filepath = CONFIG.getProperty("daily_reports_csv_filepath");
 
-    public static JSONObject readCsvFile(String filepath) {
-        File csvFile = new File(filepath);
-        JSONArray locationArray = new JSONArray();
+    private static final String google_spreadsheet_id = CONFIG.getProperty("google_spreadsheet_id");
 
-        try (CSVReader csvReader = new CSVReader(new FileReader(csvFile))) {
-            String[] parsedDateLine = csvReader.readNext();
-            String[] parsedLine;
-            while ((parsedLine = csvReader.readNext()) != null) {
-                JSONObject location = new JSONObject();
-                location.put("country", parsedLine[column_country]);
+    private static final String daily_reports_filename_pattern = CONFIG.getProperty("daily_reports_filename_pattern");
 
-                if (StringUtils.isNotBlank(parsedLine[column_province])) {
-                    location.put("province", parsedLine[column_province]);
-                }
+    public static void main(String[] args) throws GeneralSecurityException, IOException {
 
-                JSONObject geography = new JSONObject();
-                geography.put("latitude", Float.parseFloat(parsedLine[column_latitude]));
-                geography.put("longitude", Float.parseFloat(parsedLine[column_longitude]));
-                location.put("geography", geography);
-
-                JSONArray accumulatedCases = new JSONArray();
-                int previousDayAccumulated = 0;
-                for (int i=column_longitude+1; i<parsedLine.length-1; i++) {
-                    JSONObject dailyCase = new JSONObject();
-                    dailyCase.put("date", parsedDateLine[i]);
-                    int todayAccumulated = Integer.parseInt(parsedLine[i]);
-                    dailyCase.put("new", todayAccumulated - previousDayAccumulated);
-                    dailyCase.put("accumulated", todayAccumulated);
-                    accumulatedCases.put(dailyCase);
-                    previousDayAccumulated = todayAccumulated;
-                }
-                location.put("cases", accumulatedCases);
-                locationArray.put(location);
-            }
-        } catch(FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (CsvValidationException e) {
-            e.printStackTrace();
-        }
-
-        JSONObject result = new JSONObject();
-        result.put("locations", locationArray);
-        return result;
-    }
-
-
-    public static void writeToFile(JSONObject json) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("output.json"))) {
-            writer.write(json.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void main(String[] args) {
-        JSONObject confirmed = App.readCsvFile(App.confirmed_case_timeseries_csv_filepath);
-        JSONObject death = App.readCsvFile(App.death_case_timeseries_csv_filepath);
-        JSONObject recovered = App.readCsvFile(App.recovered_case_timeseries_csv_filepath);
+        /**
+        JSONObject confirmed = Utils.convertCSVFiletoJSONObject(new File(App.confirmed_case_timeseries_csv_filepath));
+        JSONObject death = Utils.convertCSVFiletoJSONObject(new File(App.death_case_timeseries_csv_filepath));
+        JSONObject recovered = Utils.convertCSVFiletoJSONObject(new File(App.recovered_case_timeseries_csv_filepath));
 
         JSONObject output = new JSONObject();
         output.put("confirmed", confirmed);
         output.put("deaths", death);
         output.put("recovered", recovered);
-        App.writeToFile(output);
+        Utils.writeToFile(output);
+         **/
+        Map<Location, List<Case>> timeSeriesCSVFileToMap = CSVHelper.readTimeSeriesCSVFileToMap(new File(confirmed_case_timeseries_csv_filepath));
+        //GoogleSheetHelper.uploadCsvToGoogleSheet(google_spreadsheet_id, timeSeriesCSVFileToMap, "Confirmed!A:ZZ");
+
+        GregorianCalendar startDate = new GregorianCalendar();
+        startDate.set(2020,0,22);
+
+        GregorianCalendar endDate = new GregorianCalendar();
+        endDate.add(Calendar.DAY_OF_MONTH, -1);
+        Map<Location, List<Case>> dailyReportCSVFileToMap = CSVHelper.readDailyReportCSVFileToMap(daily_reports_csv_filepath, startDate, endDate, daily_reports_filename_pattern);
+
+        GoogleSheetHelper.uploadCsvToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Daily!A:ZZ");
     }
 }
