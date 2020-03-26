@@ -24,8 +24,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.GeneralSecurityException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,7 +68,23 @@ public class GoogleSheetUtils {
     }
 
     public static void uploadDailyNewCaseToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
-        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.DAILYNEW);
+        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.DAILYNEWCONFIRMED);
+    }
+
+    public static void uploadDeathCaseToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
+        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.DEATH);
+    }
+
+    public static void uploadDailyNewDeathToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
+        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.DAILYNEWDEATH);
+    }
+
+    public static void uploadDailyConfirmedG75EToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
+        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.CONFIRMED);
+    }
+
+    public static void uploadDailyNewConfirmedG75EToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range) throws GeneralSecurityException, IOException {
+        uploadCsvToGoogleSheet(g_spreadsheet_id, locationAccumCasesMap, range, CaseType.DAILYNEWCONFIRMED);
     }
 
     private static void uploadCsvToGoogleSheet(final String g_spreadsheet_id, final Map<Location, List<Covid19Case>> locationAccumCasesMap, final String range, final CaseType type) throws GeneralSecurityException, IOException {
@@ -77,10 +94,12 @@ public class GoogleSheetUtils {
                 .build();
 
         //search all the location in the google sheet
-        Set<Location> locationSet = locationAccumCasesMap.keySet();
+        final Set<Location> locationSet = locationAccumCasesMap.keySet();
+        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        final int numOfDays = locationAccumCasesMap.entrySet().stream().findFirst().get().getValue().size();
 
-        List<List<Object>> valuesToGSheet = new LinkedList<>();
-        List<Object> headerRow = new LinkedList<>();
+        List<List<Object>> valuesToGSheet = new ArrayList<>(locationAccumCasesMap.size() + 1);
+        List<Object> headerRow = new ArrayList<>(numOfDays);
 
         for (Location location : locationSet) {
             //initialize headerRow if empty
@@ -88,12 +107,12 @@ public class GoogleSheetUtils {
                 headerRow.add("Country");
                 headerRow.add("Province");
                 for (Covid19Case c : locationAccumCasesMap.get(location)) {
-                    headerRow.add(c.getDate());
+                    headerRow.add(c.getDate().toString());
                 }
                 valuesToGSheet.add(headerRow);
             }
 
-            List<Object> row = new LinkedList<>();
+            List<Object> row = new ArrayList<>(numOfDays);
             row.add(location.getCountry());
             row.add(location.getProvince());
             for (Covid19Case c : locationAccumCasesMap.get(location)) {
@@ -114,14 +133,18 @@ public class GoogleSheetUtils {
         switch (type) {
             case CONFIRMED:
                 return c.getConfirmedCase();
-            case DAILYNEW:
+            case DAILYNEWCONFIRMED:
                 return c.getDailyNewConfirmedCase();
+            case DEATH:
+                return c.getDeathCase();
+            case DAILYNEWDEATH:
+                return c.getDailyNewDeathCase();
             default:
                 return c.getConfirmedCase();
         }
     }
 
     private enum CaseType {
-        CONFIRMED, DAILYNEW, DEATH, RECOVERED;
+        CONFIRMED, DAILYNEWCONFIRMED, DEATH, DAILYNEWDEATH, RECOVERED, G75E;
     }
 }

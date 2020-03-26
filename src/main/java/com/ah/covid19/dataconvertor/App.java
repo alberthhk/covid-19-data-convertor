@@ -34,9 +34,10 @@ public class App {
     private static final String google_spreadsheet_id = CONFIG.getProperty("google_spreadsheet_id");
 
     private static final String daily_reports_filename_pattern = CONFIG.getProperty("daily_reports_filename_pattern");
+    private static final String timeseries_date_format = CONFIG.getProperty("timeseries_date_format");
 
     public static void main(String[] args) throws GeneralSecurityException, IOException {
-        //Map<Location, List<Case>> timeSeriesCSVFileToMap = CSVUtils.readTimeSeriesCSVFileToMap(new File(confirmed_case_timeseries_csv_filepath));
+        //Map<Location, List<Case>> timeSeriesCSVFileToMap = CSVUtils.readTimeSeriesCSVFileToMap(new File(confirmed_case_timeseries_csv_filepath), timeseries_date_format);
         //GoogleSheetUtils.uploadCsvToGoogleSheet(google_spreadsheet_id, timeSeriesCSVFileToMap, "Confirmed!A:ZZ");
 
         GregorianCalendar startDate = new GregorianCalendar();
@@ -45,8 +46,12 @@ public class App {
         GregorianCalendar endDate = new GregorianCalendar();
         endDate.add(Calendar.DAY_OF_MONTH, -1);
         Map<Location, List<Covid19Case>> dailyReportCSVFileToMap = CSVUtils.readDailyReportCSVFileToMap(daily_reports_csv_filepath, startDate, endDate, daily_reports_filename_pattern);
-
+        Map<Location, List<Covid19Case>> g75eyeReport = CSVUtils.generateG7DailyReport(dailyReportCSVFileToMap);
         GoogleSheetUtils.uploadConfirmedCaseToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Confirmed!A:ZZ");
         GoogleSheetUtils.uploadDailyNewCaseToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Daily New Cases!A:ZZ");
+        GoogleSheetUtils.uploadDeathCaseToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Death!A:ZZ");
+        GoogleSheetUtils.uploadDailyNewDeathToGoogleSheet(google_spreadsheet_id, dailyReportCSVFileToMap, "Daily New Death!A:ZZ");
+        GoogleSheetUtils.uploadDailyConfirmedG75EToGoogleSheet(google_spreadsheet_id, g75eyeReport, "G7E5!A:ZZ");
+        GoogleSheetUtils.uploadDailyNewConfirmedG75EToGoogleSheet(google_spreadsheet_id, g75eyeReport, "G7E5!A10:ZZ");
     }
 }
